@@ -6,11 +6,14 @@ import pyaudio
 import json
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
                              QPushButton, QComboBox, QLabel, QMessageBox, QStatusBar,
-                            QSpacerItem, QMainWindow, QTabWidget, QFileDialog)
+                            QSpacerItem, QMainWindow, QTabWidget, QFileDialog,QProgressBar)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QMutex, QTimer
 from PyQt5.QtGui import QIcon, QFont,QPixmap
 import gradio_client
 from gradio_client import Client
+import socket
+
+
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -85,6 +88,9 @@ class TranslatorApp(QMainWindow):
         self.stt_target_text2 = ""
         self.translate_idle = True
         self.tab_num = 1
+
+        self.connection_status = "网络状态未知"
+
         # 创建翻译线程实例
         self.translation_thread = TranslationThread()
         # 连接线程的信号以更新UI
@@ -124,8 +130,39 @@ class TranslatorApp(QMainWindow):
         self.timer.timeout.connect(self.text_input)  # 连接定时器的timeout信号到translate方法
         self.timer.start(1000)  # 设置定时器时间间隔为1000毫秒（1秒）
 
+        #网络连接状态栏
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+
+        # 添加一个永久显示的标签
+        self.status_label = QLabel(self.connection_status)
+        self.status_bar.addPermanentWidget(self.status_label, 1)
+
+        # 添加一个按钮，用于更新状态信息
+        self.update_button = QPushButton("重试Retry", self)
+        self.update_button.clicked.connect(self.check_connection)
+        self.status_bar.addPermanentWidget(self.update_button, 3)
+
         # 显示窗口
         self.show()
+
+    def check_connection(self):
+        if(self.check_proxy()):
+            self.connection_status = "网络已连接"
+            print("网络已连接")
+        else:
+            self.connection_status = "网络未连接，请配置网络or代理服务器"
+            print("网络未连接")
+        self.status_label.setText(self.connection_status)
+
+    def check_proxy(self,timeout=5):
+            try:
+                # 尝试向Hugging Face服务器发送一个GET请求
+                requests.get('https://www.huggingface.co', timeout=timeout)
+                return True
+            except requests.exceptions.RequestException:
+                pass
+            return False
 
     def create_translate_tab(self):#文本翻译页
         
