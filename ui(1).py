@@ -46,7 +46,7 @@ class TranslationThread(QThread):#文本处理和翻译线程
             if self.source_text:  # 检查是否有待翻译的文本
                 try:
                 # 执行翻译操作
-                    client = Client("Dy3257/translate")
+                    client = Client("whiteSteelRain/translate")
                 
                     result = client.predict(
 		                source_text=self.source_text,
