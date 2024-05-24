@@ -40,13 +40,17 @@ class TranslationThread(QThread):#文本处理和翻译线程
     def input_mode(self, mode):  
         self.mode = mode
 
+    def Re_start(self):
+        self.running = True
+
     def run(self):
+        
         while self.running:
             self.mutex.lock()
             if self.source_text:  # 检查是否有待翻译的文本
                 try:
                 # 执行翻译操作
-                    client = Client("whiteSteelRain/translate")
+                    client = Client("whiteSteelRain/translate")#Client("http://127.0.0.1:7860")#
                 
                     result = client.predict(
 		                source_text=self.source_text,
@@ -63,6 +67,9 @@ class TranslationThread(QThread):#文本处理和翻译线程
                 self.translation_finished.emit(self.target_text, self.target_text2)  # 发送翻译结果信号
                 self.source_text = ""
             self.mutex.unlock()
+    def show_message(self,connection_status):
+        if self.running and (not self.source_text) and connection_status == "网络状态未知":
+            QMessageBox.information(None,'Warning','请先点击按钮、验证网络状态')
 
     def stop(self):
         self.running = False
@@ -100,6 +107,7 @@ class TranslatorApp(QMainWindow):
         self.translation_thread.start()
         
         self.initUI()
+        self.translation_thread.show_message(self.connection_status)
 
     def initUI(self):
         self.setWindowTitle('translater')
@@ -139,7 +147,7 @@ class TranslatorApp(QMainWindow):
         self.status_bar.addPermanentWidget(self.status_label, 1)
 
         # 添加一个按钮，用于更新状态信息
-        self.update_button = QPushButton("重试Retry", self)
+        self.update_button = QPushButton("连接网络/重试", self)
         self.update_button.clicked.connect(self.check_connection)
         self.status_bar.addPermanentWidget(self.update_button, 3)
 
@@ -150,9 +158,22 @@ class TranslatorApp(QMainWindow):
         if(self.check_proxy()):
             self.connection_status = "网络已连接"
             print("网络已连接")
+            if(self.translation_thread.running == False):
+                #之前网络没连接导致了翻译线程停止，现在重启
+                self.translation_thread.Re_start()
+                self.translation_thread.start()
+                print("翻译线程运行 ",self.translation_thread.running)
+            
+            
         else:
             self.connection_status = "网络未连接，请配置网络or代理服务器"
             print("网络未连接")
+            self.translation_thread.stop()
+            print("翻译线程运行 ",self.translation_thread.running)
+            QMessageBox.critical(self,'Error','您未连接网络/开启网络代理，请重试')
+
+
+        
         self.status_label.setText(self.connection_status)
 
     def check_proxy(self,timeout=5):
@@ -571,6 +592,7 @@ class TranslatorApp(QMainWindow):
             self.tokenize_output.setPlainText(self.source_tokens)
 
     def text_output(self, target_text, target_text2):
+
         if(target_text == 'Error'):
             QMessageBox.critical(self, 'Error', target_text2)
             self.translation_thread.stop()
@@ -591,6 +613,13 @@ class TranslatorApp(QMainWindow):
                 self.stt_target_text_output.setPlainText(self.stt_target_text)
                 self.stt_target_text2 = target_text2
                 self.stt_target_text2_output.setPlainText(self.stt_target_text2)
+
+
+            
+        
+
+            
+
 
     def closeEvent(self, event):
         # 关闭窗口时停止翻译线程
