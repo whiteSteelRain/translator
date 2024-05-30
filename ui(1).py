@@ -50,7 +50,8 @@ class TranslationThread(QThread):#文本处理和翻译线程
             if self.source_text:  # 检查是否有待翻译的文本
                 try:
                 # 执行翻译操作
-                    client = Client("whiteSteelRain/translate")#Client("http://127.0.0.1:7860")#
+                    client = Client("whiteSteelRain/translate")
+                    #Client("http://127.0.0.1:7860")
                 
                     result = client.predict(
 		                source_text=self.source_text,
@@ -155,9 +156,16 @@ class TranslatorApp(QMainWindow):
         self.show()
 
     def check_connection(self):
+
+        
+        
+        
+
         if(self.check_proxy()):
             self.connection_status = "网络已连接"
             print("网络已连接")
+            self.translation_thread.stop()
+            print("翻译线程运行 ",self.translation_thread.running)
             if(self.translation_thread.running == False):
                 #之前网络没连接导致了翻译线程停止，现在重启
                 self.translation_thread.Re_start()
