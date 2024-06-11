@@ -542,15 +542,10 @@ class TranslatorApp(QMainWindow):
         headers = {'content-type': 'application/x-www-form-urlencoded'}
         response = requests.post(request_url, data=params, headers=headers)
         if response:
-            #print (response.json())
-            if 'words' in response.json():
-                text_result = response.json()['words']
-                #print(text_result)
-            else:
-                # 如果response_json是一个列表，我们遍历列表并获取每个字典中的'words'值
-                text_results = [item['words'] for item in response.json()['words_result']]
-                #print(text_results)  # 打印结果，或者进行其他操作
-                self.ocr_source_text_input.setPlainText(' '.join(text_results))
+            # 如果response_json是一个列表，我们遍历列表并获取每个字典中的'words'值
+            text_results = [item['words'] for item in response.json()['words_result']]
+            #print(text_results)  # 打印结果，或者进行其他操作
+            self.ocr_source_text_input.setPlainText(' '.join(text_results))
 
 
     def change_translate_option(self):
